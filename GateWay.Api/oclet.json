@@ -1,0 +1,28 @@
+{
+  "ReRoutes": [
+    // API:CAS.ClientService
+    {
+      "DownstreamPathTemplate": "/api/values",
+      "DownstreamScheme": "https",
+      "UpstreamPathTemplate": "/values",
+      "UpstreamHttpMethod": [ "Get" ],
+      "ServiceName": "servicename",
+      "UseServiceDiscovery": true,
+      "LoadBalancerOptions": {
+        "Type": "LeastConnection"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "TestKey",
+        "AllowedScopes": []
+      }
+    }
+  ],
+  "GlobalConfiguration": {
+    "BaseUrl": "https://localhost:44300",
+    "ServiceDiscoveryProvider": {
+      "Host": "127.0.0.1",
+      "Port": 8500
+    }
+
+  }
+}

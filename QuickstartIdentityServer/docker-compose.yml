@@ -1,0 +1,8 @@
+﻿version:'3'
+
+services:
+  id4:
+  build: .
+  container_name:'identityserver'
+  ports:
+    -'19001':'80'

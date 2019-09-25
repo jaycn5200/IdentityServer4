@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace QuickstartIdentityServer.Web
+namespace Api2
 {
     public class Program
     {

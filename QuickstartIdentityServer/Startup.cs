@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Abp.EntityFrameworkCore;
+using DnsClient;
 using EFCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -13,6 +15,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using QuickstartIdentityServer.Authentcation;
+using QuickstartIdentityServer.Entitys;
+using QuickstartIdentityServer.Service;
 
 namespace QuickstartIdentityServer
 {
@@ -35,15 +40,28 @@ namespace QuickstartIdentityServer
             //});
             services.AddDbContextPool<UcenterDbContext>(options => options.UseMySql(Configuration.GetConnectionString("Default")));
             services.AddIdentityServer()
+                .AddExtensionGrantValidator<SmsAuthCodeValidator>()
                 .AddDeveloperSigningCredential()
                 .AddInMemoryIdentityResources(Config.GetIdentityResourceResources())
                 .AddInMemoryApiResources(Config.GetApiResources())
-                .AddInMemoryClients(Config.GetClients())
-                .AddResourceOwnerValidator<ResourceOwnerPasswordValidator>()
-                .AddProfileService<ProfileService>();
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
-            services.AddScoped(typeof(UcenterDbContext));
+                .AddInMemoryClients(Config.GetClients());
+            //.AddResourceOwnerValidator<ResourceOwnerPasswordValidator>()
+            //.AddProfileService<ProfileService>();
+            //从配置文件中获取ServiceDiscovery
+            services.Configure<ServiceDisvoveryOptions>(Configuration.GetSection("ServiceDiscovery"));
+            //单例注册ConsulClient
+            services.AddSingleton<IDnsQuery>(p =>
+            {
+                var serviceConfigration = p.GetRequiredService<IOptions<ServiceDisvoveryOptions>>().Value;
+                return new LookupClient(serviceConfigration.Consul.DnsEndpoint.ToIPEndPoint());
 
+            });
+            services.AddSingleton<HttpClient>(new HttpClient());
+            services.AddScoped(typeof(UcenterDbContext));
+            services.AddScoped<IAuthService,AuthServce>();
+            services.AddScoped<IUserServise,UserService>();
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+           
 
         }
 

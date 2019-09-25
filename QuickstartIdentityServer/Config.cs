@@ -34,14 +34,18 @@ namespace QuickstartIdentityServer
             {
                 new Client
                 {
-                    ClientId = "client1",
-                    AllowedGrantTypes = GrantTypes.ClientCredentials,
-
+                    ClientId = "ios",
                     ClientSecrets =
                     {
                         new Secret("secret".Sha256())
                     },
-                    AllowedScopes = { "api1",IdentityServerConstants.StandardScopes.OpenId, //必须要添加，否则报forbidden错误
+                    RefreshTokenExpiration = TokenExpiration.Sliding,
+                    AllowOfflineAccess = true,
+                    RequireClientSecret = false,
+                    AllowedGrantTypes = new List<string>(){"sms_auth_cod"},
+                    AllowedScopes = { "api1",
+                        IdentityServerConstants.StandardScopes.OfflineAccess,
+                        IdentityServerConstants.StandardScopes.OpenId, //必须要添加，否则报forbidden错误
                         IdentityServerConstants.StandardScopes.Profile},
 
                 },
