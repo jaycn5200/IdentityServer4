@@ -8,6 +8,7 @@ using DnsClient;
 using EFCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using QuickstartIdentityServer.Authentcation;
 using QuickstartIdentityServer.Entitys;
+using QuickstartIdentityServer.Infrastrycture;
 using QuickstartIdentityServer.Service;
+using Resilience;
 
 namespace QuickstartIdentityServer
 {
@@ -56,12 +59,25 @@ namespace QuickstartIdentityServer
                 return new LookupClient(serviceConfigration.Consul.DnsEndpoint.ToIPEndPoint());
 
             });
-            services.AddSingleton<HttpClient>(new HttpClient());
+            //注册全局单例ResilineceClientFactory
+            services.AddSingleton(typeof(ResilineceClientFactory), sp =>
+            {
+                var logger = sp.GetRequiredService<ILogger<ResilienceHttpClient>>();
+                var httpcontextAccesser = sp.GetRequiredService<IHttpContextAccessor>();
+                var retryCount = 5;
+                var exceptionCountAllowedBeforeBreaking = 5;
+                return new ResilineceClientFactory(logger, httpcontextAccesser, retryCount, exceptionCountAllowedBeforeBreaking);
+            });
+
+            services.AddSingleton<IHttpClient>(sp =>
+                {
+                    return sp.GetRequiredService<ResilineceClientFactory>().GetResilienceHttpClient();
+                });
             services.AddScoped(typeof(UcenterDbContext));
-            services.AddScoped<IAuthService,AuthServce>();
-            services.AddScoped<IUserServise,UserService>();
+            services.AddScoped<IAuthService, AuthServce>();
+            services.AddScoped<IUserServise, UserService>();
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
-           
+
 
         }
 

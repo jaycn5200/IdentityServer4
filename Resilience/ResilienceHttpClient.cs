@@ -54,8 +54,6 @@ namespace Resilience
                 throw new ArgumentException("Value must be either post or put.", nameof(method));
             }
 
-            // a new StringContent must be created for each retry 
-            // as it is disposed after each call
             var origin = GetOriginFromUri(uri);
 
             return HttpInvoker(origin, async () =>
@@ -77,9 +75,6 @@ namespace Resilience
                 }
 
                 var response = await _httpClient.SendAsync(requestMessage);
-
-                // raise exception if HttpResponseCode 500 
-                // needed for circuit breaker to track fails
 
                 if (response.StatusCode == HttpStatusCode.InternalServerError)
                 {
