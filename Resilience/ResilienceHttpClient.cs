@@ -19,18 +19,18 @@ namespace Resilience
     {
         private readonly HttpClient _httpClient;
         //根据URL 原始地址去创建policy
-        private readonly Func<string, IEnumerable<Policy>> _policyCreatetor;
+        private readonly Func<string, IEnumerable<Polly.Policy>> _policyCreatetor;
         //把Policy打包成组合 policy wrpper 进行本地缓存
         private readonly ConcurrentDictionary<string, PolicyWrap> _policyWraps;
         private ILogger<ResilienceHttpClient> _logger;
         private IHttpContextAccessor _httpContextAccessor;
-        public ResilienceHttpClient(HttpClient httpClient, Func<string, IEnumerable<Policy>> policyCreatetor, ILogger<ResilienceHttpClient> logger, IHttpContextAccessor httpContextAccessor, ConcurrentDictionary<string, PolicyWrap> policyWraps)
+        public ResilienceHttpClient(Func<string, IEnumerable<Policy>> policyCreatetor, ILogger<ResilienceHttpClient> logger, IHttpContextAccessor httpContextAccessor)
         {
-            _httpClient = httpClient;
-            _policyCreatetor = policyCreatetor;
+            _httpClient = new HttpClient();
             _logger = logger;
             _httpContextAccessor = httpContextAccessor;
-            _policyWraps = policyWraps;
+            _policyCreatetor = policyCreatetor;
+            _policyWraps = new ConcurrentDictionary<string, PolicyWrap>();
         }
         /// <summary>
         /// PostAsync
@@ -42,12 +42,27 @@ namespace Resilience
         /// <param name="requestId"></param>
         /// <param name="authorizationMethod"></param>
         /// <returns></returns>
-        public Task<HttpResponseMessage> PostAsync<T>(string url, T item, string authorizationToken, string requestId = null, string authorizationMethod = "Bearer")
+        public async Task<HttpResponseMessage> PostAsync<T>(string url, T item, string authorizationToken=null, string requestId = null, string authorizationMethod = "Bearer")
         {
-            return DoPostPutAsync(HttpMethod.Post, url, item, authorizationToken, requestId, authorizationMethod);
+            var requestMessage = CreateHttpRequestMessage(HttpMethod.Post, url, item);
+            return await DoPostPutAsync(HttpMethod.Post, url, requestMessage, authorizationToken, requestId, authorizationMethod);
         }
 
-        private Task<HttpResponseMessage> DoPostPutAsync<T>(HttpMethod method, string uri, T item, string authorizationToken = null, string requestId = null, string authorizationMethod = "Bearer")
+        public async Task<HttpResponseMessage> PostAsync<T>(string url, Dictionary<string, string> formdata, string authorizationToken=null, string requestId = null, string authorizationMethod = "Bearer")
+        {
+            var requestMessage = CreateHttpRequestMessage(HttpMethod.Post, url, formdata);
+            return await DoPostPutAsync(HttpMethod.Post, url, requestMessage, authorizationToken, requestId, authorizationMethod);
+        }
+
+        private HttpRequestMessage CreateHttpRequestMessage<T>(HttpMethod method, string url, T item)
+        {
+            return new HttpRequestMessage(method, url) { Content = new StringContent(JsonConvert.SerializeObject(item), System.Text.Encoding.UTF8, "application/json") };
+        }
+        private HttpRequestMessage CreateHttpRequestMessage(HttpMethod method, string url, Dictionary<string, string> formdata)
+        {
+            return new HttpRequestMessage(method, url) { Content = new FormUrlEncodedContent(formdata) };
+        }
+        private Task<HttpResponseMessage> DoPostPutAsync(HttpMethod method, string uri, HttpRequestMessage requestMessage, string authorizationToken = null, string requestId = null, string authorizationMethod = "Bearer")
         {
             if (method != HttpMethod.Post && method != HttpMethod.Put)
             {
@@ -58,11 +73,7 @@ namespace Resilience
 
             return HttpInvoker(origin, async () =>
             {
-                var requestMessage = new HttpRequestMessage(method, uri);
-
                 SetAuthizationHeader(requestMessage);
-
-                requestMessage.Content = new StringContent(JsonConvert.SerializeObject(item), System.Text.Encoding.UTF8, "application/json");
 
                 if (authorizationToken != null)
                 {
@@ -117,5 +128,7 @@ namespace Resilience
                 requestMessage.Headers.Add("Authorization", new List<string>() { authorizationHeader });
             }
         }
+
+
     }
 }

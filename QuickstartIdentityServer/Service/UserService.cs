@@ -7,17 +7,18 @@ using System.Threading.Tasks;
 using DnsClient;
 using Microsoft.Extensions.Options;
 using QuickstartIdentityServer.Entitys;
+using Resilience;
 
 namespace QuickstartIdentityServer.Service
 {
     public class UserService : IUserServise
     {
-        private HttpClient _httpClient;
+        private IHttpClient _httpClient;
         //private readonly string url = "https://localhost:44393/";
 
         private string url;
 
-        public UserService(HttpClient httpClient, IOptions<ServiceDisvoveryOptions> serviceDisconverOptinos, IDnsQuery dnsQuery)
+        public UserService( IOptions<ServiceDisvoveryOptions> serviceDisconverOptinos, IDnsQuery dnsQuery, IHttpClient httpClient)
         {
             _httpClient = httpClient;
             var address = dnsQuery.ResolveService("service.consul", serviceDisconverOptinos.Value.UserServiceName);

@@ -36,9 +36,10 @@ namespace QuickstartIdentityServer.Infrastrycture
         public ResilienceHttpClient GetResilienceHttpClient()=>new ResilienceHttpClient(origin=>CreatePolicy(origin),_logger,_httpContextAccessor);
         private Policy[] CreatePolicy(string origin)
         {
-            return new Policy[]
-            {
-                Policy.Handle<HttpRequestException>().WaitAndRetryAsync(_retryCount, retryAttept=>TimeSpan.FromSeconds(Math.Pow(2,retryAttept)), 
+            return new Policy[]{
+                Policy.Handle<HttpRequestException>().WaitAndRetryAsync(
+                    _retryCount,
+                    retryAttept=>TimeSpan.FromSeconds(Math.Pow(2,retryAttept)), 
                     (exception, timeSpan, retryCount, context) =>
                     {
                         var msg = $"第{retryCount}次重试" +
@@ -48,6 +49,7 @@ namespace QuickstartIdentityServer.Infrastrycture
                         _logger.LogWarning(msg);
                         _logger.LogDebug(msg);
                     }),
+
                 Policy.Handle<HttpRequestException>()
                     .CircuitBreakerAsync(
                         _exceptionCountAllowedBeforking,

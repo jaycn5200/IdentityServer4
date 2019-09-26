@@ -21,7 +21,10 @@ namespace Resilience
         /// <param name="requestId"></param>
         /// <param name="authorizationMethod"></param>
         /// <returns></returns>
-        Task<HttpResponseMessage> PostAsync<T>(string url, T item, string authorizationToken, string requestId = null,
+        Task<HttpResponseMessage> PostAsync<T>(string url, T item, string authorizationToken=null, string requestId = null,
+            string authorizationMethod = "Bearer");
+
+        Task<HttpResponseMessage> PostAsync<T>(string url,Dictionary<string,string> formdata, string authorizationToken=null, string requestId = null,
             string authorizationMethod = "Bearer");
     }
 }
