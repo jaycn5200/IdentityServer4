@@ -42,16 +42,16 @@ namespace Resilience
         /// <param name="requestId"></param>
         /// <param name="authorizationMethod"></param>
         /// <returns></returns>
-        public async Task<HttpResponseMessage> PostAsync<T>(string url, T item, string authorizationToken=null, string requestId = null, string authorizationMethod = "Bearer")
+        public async Task<HttpResponseMessage> PostAsync<T>(string url, T item, string authorizationToken = null, string requestId = null, string authorizationMethod = "Bearer")
         {
-            var requestMessage = CreateHttpRequestMessage(HttpMethod.Post, url, item);
-            return await DoPostPutAsync(HttpMethod.Post, url, requestMessage, authorizationToken, requestId, authorizationMethod);
+            Func<HttpRequestMessage> func = () => CreateHttpRequestMessage(HttpMethod.Post, url, item);
+            return await DoPostPutAsync(HttpMethod.Post, url, func, authorizationToken, requestId, authorizationMethod);
         }
 
-        public async Task<HttpResponseMessage> PostAsync<T>(string url, Dictionary<string, string> formdata, string authorizationToken=null, string requestId = null, string authorizationMethod = "Bearer")
+        public async Task<HttpResponseMessage> PostAsync<T>(string url, Dictionary<string, string> formdata, string authorizationToken = null, string requestId = null, string authorizationMethod = "Bearer")
         {
-            var requestMessage = CreateHttpRequestMessage(HttpMethod.Post, url, formdata);
-            return await DoPostPutAsync(HttpMethod.Post, url, requestMessage, authorizationToken, requestId, authorizationMethod);
+            Func<HttpRequestMessage> func = () => CreateHttpRequestMessage(HttpMethod.Post, url, formdata);
+            return await DoPostPutAsync(HttpMethod.Post, url, func, authorizationToken, requestId, authorizationMethod);
         }
 
         private HttpRequestMessage CreateHttpRequestMessage<T>(HttpMethod method, string url, T item)
@@ -62,17 +62,17 @@ namespace Resilience
         {
             return new HttpRequestMessage(method, url) { Content = new FormUrlEncodedContent(formdata) };
         }
-        private Task<HttpResponseMessage> DoPostPutAsync(HttpMethod method, string uri, HttpRequestMessage requestMessage, string authorizationToken = null, string requestId = null, string authorizationMethod = "Bearer")
+        private Task<HttpResponseMessage> DoPostPutAsync(HttpMethod method, string uri, Func<HttpRequestMessage> requestMessageAction, string authorizationToken = null, string requestId = null, string authorizationMethod = "Bearer")
         {
             if (method != HttpMethod.Post && method != HttpMethod.Put)
             {
                 throw new ArgumentException("Value must be either post or put.", nameof(method));
             }
-
             var origin = GetOriginFromUri(uri);
 
             return HttpInvoker(origin, async () =>
             {
+                var requestMessage = requestMessageAction();
                 SetAuthizationHeader(requestMessage);
 
                 if (authorizationToken != null)
